@@ -1,0 +1,25 @@
+This code was written for Pythonista and says the best lane based on your location
+
+
+Setup:
+pip install untangle
+
+Example XML Input:
+https://docs.google.com/spreadsheets/d/1ytLWhB7ep1Vu4BUNoksX6SBNjQQ5221aS04q7uRFrnU
+
+Data Source:
+http://www.dot.state.mn.us/tmc/trafficinfo/developers.html
+
+Map to find station data:
+http://www.dot.state.mn.us/tmc/trafficinfo/downloads/adr.pdf
+
+Station lookup for Lat/Lon:
+http://data.dot.state.mn.us/iris_xml/metro_config.xml.gz
+
+
+
+
+Credit Code Source:
+https://stackoverflow.com/questions/52051503/how-to-find-shortest-distance-of-a-location-from-a-route-python
+
+Code for gzip and file download used example but pending URL to credit source. 

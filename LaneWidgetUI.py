@@ -148,13 +148,13 @@ while True:
 	
 	#Testing data for iPad
 	#station 276
-	v = {'lat': 44.97205, 'lon':  -93.38244}
+	#v = {'lat': 44.97205, 'lon':  -93.38244}
 	
 	#Station 266
 	#v = {'lat': 44.97102, 'lon':  -93.49132}
 	
 	#Values for finding station closest to current lat/lon
-	#v = {'lat': myLocation['latitude'], 'lon': myLocation['longitude']}
+	v = {'lat': myLocation['latitude'], 'lon': myLocation['longitude']}
 	
 	
 	#Store closest location to current GPS

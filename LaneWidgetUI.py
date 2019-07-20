@@ -40,7 +40,16 @@ def closest(data, v):
 def getMNDOTData():
 	request = urllib.request.Request('http://data.dot.state.mn.us/iris_xml/det_sample.xml.gz')
 	request.add_header('Accept-encoding', 'gzip')
-	response = urllib.request.urlopen(request)
+	
+	#Try to get the latest XML 
+	for i in range(5):	
+		while True:
+			try:
+				response = urllib.request.urlopen(request)
+			except urllib2.URLError:
+				continue
+			break
+					        
 	buf = BytesIO(response.read())
 	f = gzip.GzipFile(fileobj=buf)
 	sensorXML = f.read()
@@ -131,6 +140,7 @@ appex.set_widget_view(v)
 # switchSpeed =ui.Switch(frame=10,)
 
 #Set default values for previous lane/speed values
+lastSlowDown = ""
 lastLane = ""
 lastSpeed = 0
 voice.value = 1
@@ -148,13 +158,13 @@ while True:
 	
 	#Testing data for iPad
 	#station 276
-	#v = {'lat': 44.97205, 'lon':  -93.38244}
+	v = {'lat': 44.97205, 'lon':  -93.38244}
 	
 	#Station 266
 	#v = {'lat': 44.97102, 'lon':  -93.49132}
 	
 	#Values for finding station closest to current lat/lon
-	v = {'lat': myLocation['latitude'], 'lon': myLocation['longitude']}
+	#v = {'lat': myLocation['latitude'], 'lon': myLocation['longitude']}
 	
 	
 	#Store closest location to current GPS
@@ -208,8 +218,10 @@ while True:
 				switchRate = 1
 			elif maxSpeed < 40:
 				switchRate = 3
-			else:
+			elif maxSpeed < 60:
 				switchRate = 7
+			else:
+				switchRate = 40
 			
 			
 			#Update Position 3 in UI for next station if first and second have been populated
@@ -223,8 +235,9 @@ while True:
 				S2.text = "%s Lane: %s is at %s" % (stationlist['station'],lane[speeds.index(max(speeds))],textSpeed)
 				
 				#Warn of upcomming slowddown and best future lane
-				if (lastSpeed - maxSpeed)  > 7:
-					speech.say("Prepare for a major slowdown and move to lane %s" % (lane[speeds.index(max(speeds))]))
+				if ((lastSpeed / maxSpeed)  < .5) and lastSlowDown != stationDetails['station'] :
+					speech.say("Prepare for a major slowdown and move to lane %s" % (lane[speeds.index(max(speeds))][-1]))
+					lastSlowDown = stationDetails['station']
 					
 			#Update position 1 in UI if current closest station matches current station
 			if closestStation == stationlist['station']:
@@ -237,8 +250,9 @@ while True:
 						speech.say("Switch to lane %s" % (lane[speeds.index(max(speeds))])[-1])
 						lastLane = lane[speeds.index(max(speeds))]
 						
-				#update last speed for next check to avoid thrashing 
-				lastSpeed = maxSpeed
+						#update last speed for next check to avoid thrashing 
+						lastSpeed = maxSpeed
+						
 						
 
 	#Sleep and check it all again

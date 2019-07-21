@@ -24,9 +24,9 @@ import time
 #clear Console
 import console
 
-#Speech
+#Speech/Audio Updates
 import speech
-
+import sound
 
 def distance(lat1, lon1, lat2, lon2):
    p = 0.017453292519943295
@@ -56,9 +56,27 @@ def getMNDOTData():
 
 	return sensorXML
 	
-def checkSpeed():
-	print()
+def voiceUpdate(laneVoice,speedsVoice,lastLaneVoice,slowDown):
 
+	if slowDown == 0:	
+		if lastLaneVoice != laneVoice[speedsVoice.index(max(speedsVoice))]:	
+			if voice.value == 1:
+				speech.say("Switch to lane %s" % (laneVoice[speedsVoice.index(max(speedsVoice))])[-1])
+			else:
+				for i in range(int(laneVoice[speedsVoice.index(max(speedsVoice))][-1])):
+					sound.play_effect('Coin_2',1)
+					time.sleep(.3)
+	else:
+		if voice.value == 1:
+			speech.say("Prepare for a major slowdown and move to lane %s" % (lane[speeds.index(max(speeds))][-1]))
+		else:
+			sound.play_effect('Ding_3',1)
+			time.sleep(.3)
+			for i in range(int(laneVoice[speedsVoice.index(max(speedsVoice))][-1])):
+					sound.play_effect('Coin_2',1)
+					time.sleep(.3)
+					S1.text = str(slowDown)
+			
 def getTravelPath():
 	eastBound = [{'lat': 44.97102, 'lon': -93.49132, 'station': "S266", 'L1': "1635", 'L2': "1636", 'L3': "1637"},
 	             {'lat': 44.97087, 'lon': -93.47491, 'station': "S267", 'L1': "1641", 'L2': "1642", 'L3': "1643"},
@@ -143,7 +161,7 @@ appex.set_widget_view(v)
 lastSlowDown = ""
 lastLane = ""
 lastSpeed = 0
-voice.value = 1
+voice.value = 0
 
 while True:
 	
@@ -236,7 +254,7 @@ while True:
 				
 				#Warn of upcomming slowddown and best future lane
 				if ((lastSpeed / maxSpeed)  < .5) and lastSlowDown != stationDetails['station'] :
-					speech.say("Prepare for a major slowdown and move to lane %s" % (lane[speeds.index(max(speeds))][-1]))
+					voiceUpdate(lane,speeds,lastSlowDown,1)
 					lastSlowDown = stationDetails['station']
 					
 			#Update position 1 in UI if current closest station matches current station
@@ -245,15 +263,14 @@ while True:
 				S1.text = "%s Lane: %s is at %s" % (stationlist['station'],lane[speeds.index(max(speeds))],textSpeed)
 				
 				#Update via Voice if switch is on and under the sleed limit
-				if voice.value == 1 and maxSpeed < 70 and (maxSpeed - lastSpeed) > switchRate:
-					if lastLane != lane[speeds.index(max(speeds))]:
-						speech.say("Switch to lane %s" % (lane[speeds.index(max(speeds))])[-1])
-						lastLane = lane[speeds.index(max(speeds))]
-						
-						#update last speed for next check to avoid thrashing 
-						lastSpeed = maxSpeed
-						
-						
+				if maxSpeed < 70 and (maxSpeed - lastSpeed) > switchRate:
+					voiceUpdate(lane,speeds,lastLane,0)
+					
+					#Update last lane that was shared			
+					lastLane = lane[speeds.index(max(speeds))]
+			
+					#update last speed for next check to avoid thrashing 
+					lastSpeed = maxSpeed				
 
 	#Sleep and check it all again
 	time.sleep (15)		

@@ -1,12 +1,10 @@
 #!python3
 
-#This widget is specific to Pythonista. Please see console app for generic python code
-
 #UI for Pythonista
 import appex, ui
 
 #Lat/Lon Calc
-from math import cos, asin, sqrt
+from math import cos, asin, sqrt, radians, sin, atan2, degrees
 
 # XML fetch and parse
 import urllib.request, urllib.error, urllib.parse
@@ -24,9 +22,17 @@ import time
 #clear Console
 import console
 
-#Speech/Audio Updates
+#Speech
 import speech
 import sound
+
+#check current os
+import platform
+
+
+#Global Variables
+#previousGPS = (44.97102,-93.49132)
+#currentGPS = (44.97087,-93.47491)
 
 def distance(lat1, lon1, lat2, lon2):
    p = 0.017453292519943295
@@ -35,7 +41,6 @@ def distance(lat1, lon1, lat2, lon2):
 
 def closest(data, v):
    return min(data, key=lambda p: distance(v['lat'],v['lon'],p['lat'],p['lon']))
-
 
 def getMNDOTData():
 	request = urllib.request.Request('http://data.dot.state.mn.us/iris_xml/det_sample.xml.gz')
@@ -46,7 +51,7 @@ def getMNDOTData():
 		while True:
 			try:
 				response = urllib.request.urlopen(request)
-			except urllib2.URLError:
+			except urllib.URLError:
 				continue
 			break
 					        
@@ -57,6 +62,8 @@ def getMNDOTData():
 	return sensorXML
 	
 def voiceUpdate(laneVoice,speedsVoice,lastLaneVoice,slowDown):
+	
+	sound.set_honors_silent_switch(False)
 
 	if slowDown == 0:	
 		if lastLaneVoice != laneVoice[speedsVoice.index(max(speedsVoice))]:	
@@ -71,11 +78,45 @@ def voiceUpdate(laneVoice,speedsVoice,lastLaneVoice,slowDown):
 			speech.say("Prepare for a major slowdown and move to lane %s" % (lane[speeds.index(max(speeds))][-1]))
 		else:
 			sound.play_effect('Ding_3',1)
-			time.sleep(.3)
+			time.sleep(.5)
 			for i in range(int(laneVoice[speedsVoice.index(max(speedsVoice))][-1])):
 					sound.play_effect('Coin_2',1)
 					time.sleep(.3)
-					S1.text = str(slowDown)
+					eventLog.text = str(slowDown)
+
+def calculate_initial_compass_bearing(pointA, pointB):
+    if (type(pointA) != tuple) or (type(pointB) != tuple):
+        raise TypeError("Only tuples are supported as arguments")
+
+    lat1 = radians(pointA[0])
+    lat2 = radians(pointB[0])
+
+    diffLong = radians(pointB[1] - pointA[1])
+
+    lon1 = pointA[0]
+    lat1 = pointA[1]    
+    lon2 = pointB[0]
+    lat2 = pointB[1]
+
+    x = sin(diffLong) * cos(lat2)
+    y = cos(lat1) * sin(lat2) - (sin(lat1)
+            * cos(lat2) * cos(diffLong))
+
+    initial_bearing = atan2(x, y)
+
+    initial_bearing = degrees(initial_bearing)
+    compass_bearing = (initial_bearing + 360) % 360
+    
+    #eventLog.text = str(compass_bearing)
+
+    bearings = ["NE", "E", "SE", "S", "SW", "W", "NW", "N"];
+
+    index = compass_bearing - 22.5
+    if index < 0 :
+        index += 360
+    index = int(index / 45)
+
+    return bearings[index]
 			
 def getTravelPath():
 	eastBound = [{'lat': 44.97102, 'lon': -93.49132, 'station': "S266", 'L1': "1635", 'L2': "1636", 'L3': "1637"},
@@ -102,34 +143,76 @@ def getTravelPath():
 	             {'lat': 44.97527, 'lon': -93.28338, 'station': "S291", 'L1': "611", 'L2': "701", 'L3': "702"}]
 
 	westBound = [{'lat': 4.97039, 'lon': -93.31963, 'station': "S283", 'L1': "788", 'L2': "789", 'L3': "790"},
-							{'lat': 44.97002, 'lon': -93.30761, 'station': "S285", 'L1': "777", 'L2': "778", 'L3': "779"},
-							{'lat': 44.96971, 'lon': -93.30132, 'station': "S287", 'L1': "767", 'L2': "768", 'L3': "769"},
-							{'lat': 44.97484, 'lon': -93.28936, 'station': "S290", 'L1': "597", 'L2': "598"},
-							{'lat': 44.97019, 'lon': -93.32775, 'station': "S318", 'L1': "1740", 'L2': "1741", 'L3': "1742"},
-							{'lat': 44.97066, 'lon': -93.33617, 'station': "S319", 'L1': "1722", 'L2': "1723"},
-							{'lat': 44.97076, 'lon': -93.34351, 'station': "S320", 'L1': "1750", 'L2': "1751"},
-							{'lat': 44.97053, 'lon': -93.35172, 'station': "S321", 'L1': "1754", 'L2': "1755", 'L3': "1756"},
-							{'lat': 44.97117, 'lon': -93.36188, 'station': "S336", 'L1': "1760", 'L2': "1761", 'L3': "1762", 'L4': "5458"},
-							{'lat': 44.97139, 'lon': -93.37261, 'station': "S337", 'L1': "5848", 'L2': "1765", 'L3': "1766", 'L4': "5459"},
-							{'lat': 44.97223, 'lon': -93.38219, 'station': "S338", 'L1': "5849", 'L2': "1771", 'L3': "1772", 'L4': "5460"},
-							{'lat': 44.97404, 'lon': -93.3891, 'station': "S339", 'L1': "1776", 'L2': "1777", 'L3': "5461"},
-							{'lat': 44.97366, 'lon': -93.3993, 'station': "S340", 'L1': "1780", 'L2': "1781", 'L3': "5462"},
-							{'lat': 44.97323, 'lon': -93.40946, 'station': "S341", 'L1': "1787", 'L2': "1788", 'L3': "1789", 'L4': "5463"},
-							{'lat': 44.97136, 'lon': -93.41911, 'station': "S342", 'L1': "1792", 'L2': "1793", 'L3': "5464"},
-							{'lat': 44.97108, 'lon': -93.43134, 'station': "S343", 'L1': "1797", 'L2': "1798", 'L3': "5465"},
-							{'lat': 44.97107, 'lon': -93.44304, 'station': "S344", 'L1': "1801", 'L2': "1802", 'L3': "5466"},
-							{'lat': 44.97106, 'lon': -93.45457, 'station': "S345", 'L1': "1806", 'L2': "1807", 'L3': "1808"},
-							{'lat': 44.97108, 'lon': -93.4639, 'station': "S346", 'L1': "1811", 'L2': "1812", 'L3': "1813"},
-							{'lat': 44.97109, 'lon': -93.47488, 'station': "S347", 'L1': "1820", 'L2': "1821", 'L3': "1822"},
-							{'lat': 44.97123, 'lon': -93.49121, 'station': "S348", 'L1': "1825", 'L2': "1826", 'L3': "1827"}]
+				{'lat': 44.97002, 'lon': -93.30761, 'station': "S285", 'L1': "777", 'L2': "778", 'L3': "779"},
+				{'lat': 44.96971, 'lon': -93.30132, 'station': "S287", 'L1': "767", 'L2': "768", 'L3': "769"},
+				{'lat': 44.97484, 'lon': -93.28936, 'station': "S290", 'L1': "597", 'L2': "598"},
+				{'lat': 44.97019, 'lon': -93.32775, 'station': "S318", 'L1': "1740", 'L2': "1741", 'L3': "1742"},
+				{'lat': 44.97066, 'lon': -93.33617, 'station': "S319", 'L1': "1722", 'L2': "1723"},
+				{'lat': 44.97076, 'lon': -93.34351, 'station': "S320", 'L1': "1750", 'L2': "1751"},
+				{'lat': 44.97053, 'lon': -93.35172, 'station': "S321", 'L1': "1754", 'L2': "1755", 'L3': "1756"},
+				{'lat': 44.97117, 'lon': -93.36188, 'station': "S336", 'L1': "1760", 'L2': "1761", 'L3': "1762", 'L4': "5458"},
+				{'lat': 44.97139, 'lon': -93.37261, 'station': "S337", 'L1': "5848", 'L2': "1765", 'L3': "1766", 'L4': "5459"},
+				{'lat': 44.97223, 'lon': -93.38219, 'station': "S338", 'L1': "5849", 'L2': "1771", 'L3': "1772", 'L4': "5460"},
+				{'lat': 44.97404, 'lon': -93.3891, 'station': "S339", 'L1': "1776", 'L2': "1777", 'L3': "5461"},
+				{'lat': 44.97366, 'lon': -93.3993, 'station': "S340", 'L1': "1780", 'L2': "1781", 'L3': "5462"},
+				{'lat': 44.97323, 'lon': -93.40946, 'station': "S341", 'L1': "1787", 'L2': "1788", 'L3': "1789", 'L4': "5463"},
+				{'lat': 44.97136, 'lon': -93.41911, 'station': "S342", 'L1': "1792", 'L2': "1793", 'L3': "5464"},
+				{'lat': 44.97108, 'lon': -93.43134, 'station': "S343", 'L1': "1797", 'L2': "1798", 'L3': "5465"},
+				{'lat': 44.97107, 'lon': -93.44304, 'station': "S344", 'L1': "1801", 'L2': "1802", 'L3': "5466"},
+				{'lat': 44.97106, 'lon': -93.45457, 'station': "S345", 'L1': "1806", 'L2': "1807", 'L3': "1808"},
+				{'lat': 44.97108, 'lon': -93.4639, 'station': "S346", 'L1': "1811", 'L2': "1812", 'L3': "1813"},
+				{'lat': 44.97109, 'lon': -93.47488, 'station': "S347", 'L1': "1820", 'L2': "1821", 'L3': "1822"},
+				{'lat': 44.97123, 'lon': -93.49121, 'station': "S348", 'L1': "1825", 'L2': "1826", 'L3': "1827"}]
 	
-	#return data set depending on direction toggle in UI
-	if direction.selected_index == 0:
-		return westBound
-	else:
-		direction.selected_index = 1
-		return eastBound
 
+	#Write previous GPS before updating and sleeping.
+	try:
+		previousGPS
+		
+		#See if you have moving before it is used to calculate direction
+		if distance(previousGPS[0],previousGPS[1],currentGPS[0],currentGPS[1]) > .01:
+			
+			#Calculate Direction
+			myDirection = calculate_initial_compass_bearing(previousGPS,currentGPS)
+			
+			#Set values based on bearing
+			if myDirection in ["NE", "E", "SE"]:
+				direction.selected_index = 1
+				return eastBound
+			elif myDirection in ["SW", "W", "NW"]:
+				direction.selected_index = 0
+				return westBound
+			elif myDirection in ["S"]:
+				eventLog.text = "S"
+				if direction.selected_index == 0:
+					return westBound
+				else:
+					direction.selected_index = 1
+					return eastBound
+			elif myDirection in ["N"]: 
+				eventLog.text = "N"
+				if direction.selected_index == 0:
+					return westBound
+				else:
+					direction.selected_index = 1
+					return eastBound
+			else:
+				eventLog.text = "WTF"
+		else:
+			if direction.selected_index == 0:
+				return westBound
+			else:
+				direction.selected_index = 1
+				return eastBound
+			
+	except NameError:
+		#return data set depending on direction toggle in UI
+		if direction.selected_index == 0:
+			return westBound
+		else:
+			direction.selected_index = 1
+			return eastBound
+			
 #Turn screen timout off so phone doesn't sleep
 console.set_idle_timer_disabled("disable")
 
@@ -138,12 +221,14 @@ console.set_idle_timer_disabled("disable")
 v = ui.View(frame=(0, 0, 300, 110))
 
 #Setup 3 labels for each station to write
-S1 = ui.Label(frame=(100, 20, 195, 20), flex='lwh', font=('<System>', 16), alignment=ui.ALIGN_LEFT, name='result_label')
-S2 = ui.Label(frame=(100, 40, 195, 20), flex='lwh', font=('<System>', 16), alignment=ui.ALIGN_LEFT, name='result_label')
-S3 = ui.Label(frame=(100, 60, 195, 20), flex='lwh', font=('<System>', 16), alignment=ui.ALIGN_LEFT, name='result_label')
+S1 = ui.Label(frame=(100, 5, 195, 20), flex='lwh', font=('<System>', 16), alignment=ui.ALIGN_LEFT, name='result_label')
+S2 = ui.Label(frame=(100, 25, 195, 20), flex='lwh', font=('<System>', 16), alignment=ui.ALIGN_LEFT, name='result_label')
+S3 = ui.Label(frame=(100, 45, 195, 20), flex='lwh', font=('<System>', 16), alignment=ui.ALIGN_LEFT, name='result_label')
+eventLog = ui.Label(frame=(100, 65, 195, 20), flex='lwh', font=('<System>', 16), alignment=ui.ALIGN_LEFT, name='result_label')
 v.add_subview(S1)
 v.add_subview(S2)
 v.add_subview(S3)
+v.add_subview(eventLog)
 
 #Selection control for east/west
 direction = ui.SegmentedControl(frame=(5,5,100,50),segments=["West","East"],felx='lwh', alignment=ui.ALIGN_LEFT, name='directionSelect')
@@ -165,28 +250,39 @@ voice.value = 0
 
 while True:
 	
-	#Fetch Phone's GPS Location
-	#print("Pythonista")
+	#Write previous GPS before updating and sleeping.
+	try:
+		previousGPS = currentGPS
+	except NameError:
+		pass
 	
-	#Turn on GPS and fetch current location
-	location.start_updates()
-	myLocation = location.get_location()
-	location.stop_updates()
+	if platform.machine().startswith('iP'):
+	
+		#Turn on GPS and fetch current location
+		location.start_updates()
+		myLocation = location.get_location()
+		location.stop_updates()
+			
+		#Update global GPS currentGPS for direction lookup	
+		currentGPS = (myLocation['latitude'],myLocation['longitude'])
+	
+		#Values for finding station closest to current lat/lon
+		v = {'lat': myLocation['latitude'], 'lon': myLocation['longitude']}
+	
+	else:					
+		#Testing data for iPad
+		#station 276
+		v = {'lat': 44.97205, 'lon':  -93.38244}
 	
 	
-	#Testing data for iPad
-	#station 276
-	v = {'lat': 44.97205, 'lon':  -93.38244}
+		currentGPS = (44.97205,44.97205,-93.38244)
 	
-	#Station 266
-	#v = {'lat': 44.97102, 'lon':  -93.49132}
-	
-	#Values for finding station closest to current lat/lon
-	#v = {'lat': myLocation['latitude'], 'lon': myLocation['longitude']}
-	
+		#Station 266
+		#v = {'lat': 44.97102, 'lon':  -93.49132}
 	
 	#Store closest location to current GPS
-	closestStation = closest(getTravelPath(), v)['station']
+	myTP = getTravelPath()
+	closestStation = closest(myTP, v)['station']
 	
 	#Load sensor data from MN website	
 	latestSensorData = untangle.parse(str(getMNDOTData(), 'utf-8')).traffic_sample.sample
@@ -233,11 +329,11 @@ while True:
 				
 			#Tune lane switching speed used in voice update on S1
 			if maxSpeed < 20:
-				switchRate = 1
+				switchRate = 0
 			elif maxSpeed < 40:
-				switchRate = 3
+				switchRate = 2
 			elif maxSpeed < 60:
-				switchRate = 7
+				switchRate = 3
 			else:
 				switchRate = 40
 			
@@ -273,4 +369,4 @@ while True:
 					lastSpeed = maxSpeed				
 
 	#Sleep and check it all again
-	time.sleep (15)		
+	time.sleep (15)

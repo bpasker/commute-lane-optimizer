@@ -93,11 +93,6 @@ def calculate_initial_compass_bearing(pointA, pointB):
 
     diffLong = radians(pointB[1] - pointA[1])
 
-    lon1 = pointA[0]
-    lat1 = pointA[1]    
-    lon2 = pointB[0]
-    lat2 = pointB[1]
-
     x = sin(diffLong) * cos(lat2)
     y = cos(lat1) * sin(lat2) - (sin(lat1)
             * cos(lat2) * cos(diffLong))
